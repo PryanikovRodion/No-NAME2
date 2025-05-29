@@ -16,7 +16,7 @@ def get_my_products(seller=Depends(get_seller), db: Session = Depends(get_sessio
     return [ProductFullInfo.model_validate(product, from_attributes=True) for product in seller.products]
 
 @app.get("/my_orders", response_model=list[OrderFullInfo])
-def get_my_orders(seller=Depends(get_seller), db: Session = Depends(get_session)):
+def get_my_orders(seller=Depends(get_seller)):
     return [OrderFullInfo.model_validate(order, from_attributes=True) for order in seller.seller_orders]
 
 @app.post("/my_orders/{order_id}/acknowledged")

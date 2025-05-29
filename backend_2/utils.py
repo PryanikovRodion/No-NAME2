@@ -2,12 +2,10 @@ import bcrypt
 from datetime import datetime, timedelta, timezone
 import jwt
 from sqlmodel import Session
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, Header
 from database.db import *
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 secret_key = "your_secret_key"
 algorithm = "HS256"
 
@@ -34,7 +32,7 @@ def decode_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-def get_curent_user(db: Session = Depends(get_session), token: str = Depends(oauth2_scheme)):
+def get_curent_user(db: Session = Depends(get_session), token: str = Header()):
     if not token:
         raise HTTPException(status_code=401, detail="Token not provided")
     try:
@@ -49,6 +47,7 @@ def get_curent_user(db: Session = Depends(get_session), token: str = Depends(oau
         raise HTTPException(status_code=401, detail=str(e))
 
 def get_buyer(user = Depends(get_curent_user)):
+    from database.models import Role
     if user.role != Role.buyer:
         raise HTTPException(status_code=403, detail="Not authorized as a buyer")
     return user

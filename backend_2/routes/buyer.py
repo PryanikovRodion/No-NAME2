@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from utils import get_buyer
 from sqlmodel import Session
 from database.db import get_session
-from schems.posts import CreateCartItem, CartItemsInfo, CreateOrder
+from schems.posts import CreateCartItem, CartItemsInfo, CreateOrder, OrderFullInfo
 
 app = APIRouter()
 
 @app.post("/add_balance/{amount}")
 def add_balance(amount: float, buyer=Depends(get_buyer), db: Session = Depends(get_session)):
     buyer.add_balance(db, amount)
-    return {"message": "Balance added successfully", "new_balance": buyer.balance}
+    return {"message": "Balance added successfully", "new_balance": buyer.wallet.balance}
 
 @app.post("/add_cart_items")
 def add_cart_items(cart_item: CreateCartItem, buyer=Depends(get_buyer), db: Session = Depends(get_session)):
@@ -28,12 +28,12 @@ def create_order(order: CreateOrder, buyer=Depends(get_buyer), db: Session = Dep
     buyer.create_order(db, order)
     return {"message": "Order created successfully"}
 
-@app.get("/my_orders", response_model=list[CartItemsInfo])
+@app.get("/my_orders", response_model=list[OrderFullInfo])
 def get_orders(buyer=Depends(get_buyer)):
-    orders = buyer.orders
+    orders = buyer.buyer_orders
     if not orders:
         raise HTTPException(status_code=404, detail="No orders found")
-    return [CartItemsInfo.model_validate(order, from_attributes=True) for order in orders]
+    return [OrderFullInfo.model_validate(order, from_attributes=True) for order in orders]
 
 @app.post("/my_orders/{order_id}/confirm")
 def confirm_order(order_id: int, buyer=Depends(get_buyer), db: Session = Depends(get_session)):

@@ -27,9 +27,14 @@ class User(SQLModel, table=True):
     wallet: Optional["Wallet"] = Relationship(back_populates="user")
     cart_items: List["CartItem"] = Relationship(back_populates="buyer")
     products: List["Product"] = Relationship(back_populates="seller")
-    seller_orders: List["Order"] = Relationship(back_populates="seller")
-    buyer_orders: List["Order"] = Relationship(back_populates="buyer")
-
+    seller_orders: List["Order"] = Relationship(
+        back_populates="seller",
+        sa_relationship_kwargs={"foreign_keys": "[Order.seller_id]"}
+    )
+    buyer_orders: List["Order"] = Relationship(
+        back_populates="buyer",
+        sa_relationship_kwargs={"foreign_keys": "[Order.buyer_id]"}
+    )
     @classmethod
     def get_token(cls, db: Session, user: "AuthUser") -> str:
         from utils import verify_password, generate_token
@@ -52,7 +57,8 @@ class User(SQLModel, table=True):
                 status_code=400,
                 detail="User with this name already exists."
             )
-        user_instance = cls.from_create_user_open(user)
+        user_instance = User(**CreateUser.from_create_user_open(user).model_dump())
+
         db.add(user_instance)
         db.commit()
         db.refresh(user_instance)
@@ -65,7 +71,7 @@ class User(SQLModel, table=True):
 
     @classmethod
     def get_by_email(cls, db: Session, email: EmailStr) -> Optional["User"]:
-        return db.exec((select(cls).where(cls.email == email))).first()
+        return db.exec(select(cls).where(cls.email == email)).first()
 
     @classmethod
     def get_by_id(cls, db: Session, user_id: int) -> Optional["User"]:
@@ -247,9 +253,15 @@ class CartItem(SQLModel, table=True):
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     buyer_id: int = Field(foreign_key="user.id")
-    buyer: User = Relationship(back_populates="buyer_orders")
+    buyer: User = Relationship(
+        back_populates="buyer_orders",
+        sa_relationship_kwargs={"foreign_keys": "[Order.buyer_id]"}
+    )
     seller_id: int = Field(foreign_key="user.id")
-    seller: User = Relationship(back_populates="seller_orders")
+    seller: User = Relationship(
+        back_populates="seller_orders",
+        sa_relationship_kwargs={"foreign_keys": "[Order.seller_id]"}
+    )
     product_id: int = Field(foreign_key="product.id")
     product: Product = Relationship(back_populates="orders")
     quantity: int

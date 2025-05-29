@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, conint
 from typing import Optional, List
 from enum import Enum
-from utils import hash_password
+
 
 class Role(str, Enum):
     buyer = "buyer"
@@ -32,7 +32,7 @@ class CreateUserOpen(BaseModel):
     password: str = Field(..., min_length=8, example="password")
     role: Role = Field(..., example=Role.buyer)
 
-class CreateUser(CreateUserOpen):
+class CreateUser(BaseModel):
     email: EmailStr = Field(..., example="user@example.com")
     name: str = Field(..., max_length=128, example="John Doe")
     password_hash: str = Field(..., example="password")
@@ -40,6 +40,7 @@ class CreateUser(CreateUserOpen):
 
     @classmethod
     def from_create_user_open(cls, user_open: CreateUserOpen) -> "CreateUser":
+        from utils import hash_password
         return cls(
             email=user_open.email,
             name=user_open.name,
@@ -61,8 +62,9 @@ class AuthUser(BaseModel):
     password: str = Field(..., min_length=8, example="password")
 
 class Token(BaseModel):
-    access_token: str = Field(..., example="access_token")
-
+    access_token: str
+    token_type: str = "bearer"
+    
 class ProductInfo(BaseModel):
     id: int = Field(..., ge=1, example=1)
     name: str = Field(..., max_length=128, example="Product Name")
@@ -72,11 +74,17 @@ class ProductInfo(BaseModel):
     class Config:
         extra = "ignore"
 
+class WalletInfo(BaseModel):
+    balance: float = Field(..., example="100.0")
+    frozen: float = Field(..., example="0.0")
+    class Config:
+        extra = "ignore"
+
 class UserInfo(BaseModel):
     email: EmailStr = Field(..., example="user@example.com")
     name: str = Field(..., max_length=128, example="John Doe")
     role: Role = Field(..., example=Role.buyer)
-    balance: float = Field(..., ge=0, example=0)
+    wallet: WalletInfo = Field(..., example={"balance": 100.0, "frozen": 0.0})
     class Config:
         extra = "ignore"
 
